@@ -86,3 +86,14 @@ The caller must persist accepted snapshots and decide how to deliver or audit di
 ## Current readiness
 
 The read-only normalization, reconciliation and Core event adapter foundations are implemented with automated tests. Exact ATLAS server build, loader, SDK, callbacks and feature-specific capabilities still require isolated reproducible validation.
+
+### Implemented: explicit Core outbox consumer client
+
+- Added a server-scoped HTTPS client for Core claim and acknowledgement endpoints.
+- Claims only the four documented tribe event types using Core's exact-match `eventTypes` filter, avoiding leases on unrelated same-server events.
+- Validates claimed event IDs, lease tokens, server scope and supported event types before normalization.
+- Keeps claim and acknowledgement separate; no automatic polling, persistence, delivery, Discord integration or game mutation.
+- Leaves durable idempotency and acknowledgement decisions with the caller; failed attempts can be released for Core retry.
+- Added deterministic Fetch-mocked tests and usage/safety documentation.
+
+This is an API client foundation only, not a background worker, and it does not claim exactly-once processing.
