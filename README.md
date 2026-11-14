@@ -20,8 +20,9 @@ The server-independent foundation provides:
 
 - `src/snapshot.js`: immutable schema-v1 provider snapshot normalization and pure joined/left/unchanged membership reconciliation.
 - `src/core-event.js`: normalization of Core's documented `game.event.received` outbox envelope for `tribe.created`, `tribe.member.joined`, `tribe.member.left` and `tribe.updated`.
+- `src/reconcile.js`: monotonic, read-only reconciliation of successive provider snapshots, with replay idempotency and rejection of stale or conflicting observations.
 
-The Core event adapter requires explicit cluster/grid/server scope and opaque provider tribe/member IDs. It creates a cluster-scoped tribe key and a normalized activity record. It does not infer native callback names, construct a complete snapshot from partial events, persist membership, or issue game mutations.
+The Core event adapter requires explicit cluster/grid/server scope and opaque provider tribe/member IDs. It creates a cluster-scoped tribe key and a normalized activity record. It does not infer native callback names, construct a complete snapshot from partial events, persist membership, or issue game mutations. Snapshot reconciliation rejects older observations and conflicting snapshots with identical timestamps; exact replays are no-ops. The caller remains responsible for durable storage and delivery.
 
 ## Architecture and dependencies
 
