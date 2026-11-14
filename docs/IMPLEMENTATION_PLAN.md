@@ -52,6 +52,17 @@ ATLAS tribe IDs are cluster-scoped; never key by name. Tribes owns membership sn
 
 This adapter consumes already-normalized Core events. It does not define native ATLAS callbacks, create full snapshots from partial events, poll a server, persist state, change membership, or grant permissions.
 
+### Implemented: monotonic read-only reconciliation
+
+- Added a pure reconciliation function for two provider snapshots of the same cluster-scoped tribe.
+- Reject older observations so delayed responses cannot roll a membership view backward.
+- Treat byte-equivalent normalized observations at the same timestamp as idempotent duplicates.
+- Reject conflicting content with the same observation timestamp rather than selecting an arbitrary winner.
+- Return joined/left/unchanged member IDs plus the accepted immutable snapshot; no persistence or game mutation occurs.
+- Tests cover membership changes, unchanged membership across grid/server observation changes, replay, stale ordering, same-time conflicts, cross-cluster isolation and input immutability.
+
+The caller must persist accepted snapshots and decide how to deliver or audit diffs. This module deliberately does neither.
+
 ## Technical gates and risks
 
 - Never trust display names or stale membership for privileged actions.
