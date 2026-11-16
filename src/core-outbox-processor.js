@@ -46,16 +46,16 @@ export async function processTribeOutboxBatch(input) {
   for (const item of claimed) {
     const eventId = item?.outboxEvent?.id;
     if (typeof eventId !== "string" || eventId.trim() === "" ||
-        !item.event || typeof item.event !== "object" ||
-        Array.isArray(item.event)) {
+        !item || typeof item !== "object" || Array.isArray(item)) {
       results.push(Object.freeze({ eventId: null, status: "invalid_claim" }));
       continue;
     }
 
+    const { outboxEvent, ...normalizedEvent } = item;
     try {
       await persistEvent(Object.freeze({
         idempotencyKey: eventId,
-        event: item
+        event: Object.freeze(normalizedEvent)
       }));
     } catch {
       try {

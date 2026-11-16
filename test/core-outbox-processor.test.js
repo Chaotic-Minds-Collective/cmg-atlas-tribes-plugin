@@ -13,8 +13,8 @@ const event = Object.freeze({
 
 function claimed(id) {
   return Object.freeze({
-    outboxEvent: Object.freeze({ id }),
-    event
+    ...event,
+    outboxEvent: Object.freeze({ id })
   });
 }
 
@@ -51,7 +51,8 @@ test("persists normalized tribe events before acknowledging delivery", async () 
   assert.deepEqual(calls.map((call) => call.type), ["claim", "persist", "acknowledge"]);
   assert.equal(calls[2].outcome, "delivered");
   assert.equal(persisted[0].idempotencyKey, "outbox-1");
-  assert.equal(persisted[0].event, claimed("outbox-1"));
+  assert.deepEqual(persisted[0].event, event);
+  assert.equal("outboxEvent" in persisted[0].event, false);
 });
 
 test("reports durable processing failures to Core for retry", async () => {
