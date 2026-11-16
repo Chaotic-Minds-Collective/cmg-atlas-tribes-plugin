@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "check": "node --check src/snapshot.js && node --check src/core-event.js && node --check src/reconcile.js && node --check test/snapshot.test.js && node --check test/core-event.test.js && node --check test/reconcile.test.js && node --check src/core-outbox-consumer.js && node --check test/core-outbox-consumer.test.js",
+    "check": "node --check src/snapshot.js && node --check src/core-event.js && node --check src/reconcile.js && node --check test/snapshot.test.js && node --check test/core-event.test.js && node --check test/reconcile.test.js && node --check src/core-outbox-consumer.js && node --check test/core-outbox-consumer.test.js && node --check src/core-outbox-processor.js && node --check test/core-outbox-processor.test.js",
     "test": "node --test"
   }
 }
