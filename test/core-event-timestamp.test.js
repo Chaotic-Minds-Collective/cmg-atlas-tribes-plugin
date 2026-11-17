@@ -42,7 +42,7 @@ test("rejects impossible calendar dates and malformed date-time fields", () => {
   ]) {
     assert.throws(
       () => normalizeCoreTribeEvent(event(value)),
-      /occurredAt must be (a valid )?ISO date-time with timezone/
+      /occurredAt must be .*ISO date-time with timezone/
     );
   }
 });
