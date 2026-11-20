@@ -26,7 +26,7 @@ function validateOptions(options) {
 }
 
 /**
- * Claim one batch and process it sequentially.
+ * Claim one event and process it before requesting another lease.
  *
  * persistEvent receives { idempotencyKey, event }. It must commit the event
  * record and its derived membership/activity changes atomically. Core
@@ -40,6 +40,9 @@ export async function processTribeOutboxBatch(input) {
 
   if (!Array.isArray(claimed)) {
     throw new TypeError("consumer.claim() must return an array");
+  }
+  if (claimed.length > 1) {
+    throw new RangeError("consumer.claim() must return at most one event until concurrent lease renewal is implemented");
   }
 
   const results = [];
