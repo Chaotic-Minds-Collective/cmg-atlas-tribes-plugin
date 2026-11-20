@@ -9,3 +9,16 @@ test("rejects wrong-server and unsupported event records",async()=>{await assert
 test("does not acknowledge until the caller explicitly requests it",async()=>{let calls=[];const c=client(async(url,options)=>{calls.push({url,options});return options.body.includes("leaseSeconds")?response([row()]):response({accepted:true,duplicate:false,eventId:EVENT,outcome:"delivered"},202);});const [claimed]=await c.claim();assert.equal(calls.length,1);await c.acknowledge(claimed,"delivered");assert.equal(calls.length,2);assert.deepEqual(JSON.parse(calls[1].options.body),{leaseToken:LEASE,outcome:"delivered"});assert.match(calls[1].url,new RegExp("/events/"+EVENT+"/ack$"));});
 test("reports failed processing attempts to Core",async()=>{let body;const c=client(async(_url,options)=>{if(options.body.includes("leaseSeconds"))return response([row()]);body=JSON.parse(options.body);return response({accepted:true,duplicate:false,eventId:EVENT,outcome:"failed"},202);});const [claimed]=await c.claim();await c.acknowledge(claimed,"failed","temporary downstream failure");assert.deepEqual(body,{leaseToken:LEASE,outcome:"failed",error:"temporary downstream failure"});});
 test("surfaces lease conflicts and validates configuration and bounds",async()=>{await assert.rejects(client(async()=>response(null,409)).acknowledge({outboxEvent:{id:EVENT,leaseToken:LEASE}},"delivered"),e=>e.status===409&&e.code==="EVENT_LEASE_INVALID");assert.throws(()=>createCoreTribeOutboxConsumer({baseUrl:"http://core.example.test",serviceToken:"x",serverId:SERVER}),/HTTPS origin/);await assert.rejects(client(async()=>response([])).claim({limit:101}),/limit must be an integer/);await assert.rejects(client(async()=>response([])).claim({leaseSeconds:10}),/leaseSeconds must be an integer/);});
+
+
+test("defaults to one claimed event when no limit is provided", async () => {
+  let body;
+  const consumer = makeConsumer({
+    fetchImpl: async (url, options) => {
+      body = JSON.parse(options.body);
+      return response(200, { data: [] });
+    }
+  });
+  await consumer.claim();
+  assert.equal(body.limit, 1);
+});
