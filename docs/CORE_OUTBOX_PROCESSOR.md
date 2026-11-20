@@ -4,8 +4,8 @@
 
 ## Processing contract
 
-1. Claim a bounded batch through the configured Tribes Core outbox consumer.
-2. For each claimed record, call `persistEvent({ idempotencyKey, event })`.
+1. Claim one event through the configured Tribes Core outbox consumer.
+2. For the claimed record, call `persistEvent({ idempotencyKey, event })`.
 3. The sink must atomically record the stable Core outbox event ID and the normalized tribe event, plus any derived membership/activity changes.
 4. Only after the sink resolves successfully, acknowledge the Core event as `delivered`.
 5. If durable processing fails, acknowledge it as `failed`; Core releases the lease and applies its retry backoff.
@@ -15,7 +15,7 @@
 
 This is at-least-once delivery, not exactly-once processing. A crash after the durable sink commits but before Core accepts the acknowledgement can cause a replay. The stable outbox event ID must therefore be used as a unique idempotency key in the sink's transaction.
 
-The processor handles events sequentially and continues after per-event persistence or acknowledgement failures. It does not provide storage, start a scheduler, change tribe membership in ATLAS, or grant permissions.
+The processor handles exactly one event per invocation. Multi-event claim arrays are rejected until the processor can renew every outstanding lease concurrently. Invoke it again only after the current event has been durably processed and acknowledged or released for retry. It does not provide storage, start a scheduler, change tribe membership in ATLAS, or grant permissions.
 
 ## Example
 
@@ -31,7 +31,7 @@ const consumer = createCoreTribeOutboxConsumer({
 
 const results = await processTribeOutboxBatch({
   consumer,
-  claimOptions: { limit: 25, leaseSeconds: 120 },
+  claimOptions: { limit: 1, leaseSeconds: 120 },
   persistEvent: async ({ idempotencyKey, event }) => {
     // Implement one transaction in the caller's durable store:
     // record idempotencyKey and apply the normalized tribe event.

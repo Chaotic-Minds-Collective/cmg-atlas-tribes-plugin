@@ -40,7 +40,7 @@ test("persists normalized tribe events before acknowledging delivery", async () 
   const persisted = [];
   const result = await processTribeOutboxBatch({
     consumer,
-    claimOptions: { limit: 10 },
+    claimOptions: { limit: 1 },
     async persistEvent(record) {
       calls.push({ type: "persist", id: record.idempotencyKey });
       persisted.push(record);
@@ -97,22 +97,15 @@ test("leaves failed events leased when retry acknowledgement fails", async () =>
   assert.equal(result[0].status, "retry_pending_lease_expiry");
 });
 
-test("continues sequentially after an event persistence failure", async () => {
-  const { consumer, calls } = fakeConsumer([
-    claimed("outbox-5"),
-    claimed("outbox-6")
-  ]);
-  const result = await processTribeOutboxBatch({
-    consumer,
-    async persistEvent(record) {
-      calls.push({ type: "persist", id: record.idempotencyKey });
-      if (record.idempotencyKey === "outbox-5") throw new Error("temporary");
-    }
-  });
-
-  assert.deepEqual(result.map((item) => item.status), ["retry_scheduled", "delivered"]);
-  assert.deepEqual(calls.filter((call) => call.type === "persist")
-    .map((call) => call.id), ["outbox-5", "outbox-6"]);
+test("rejects multi-event batches until every outstanding lease can be renewed concurrently", async () => {
+  const { consumer, calls } = fakeConsumer([claimed("outbox-5"), claimed("outbox-6")]);
+  let persisted = 0;
+  await assert.rejects(
+    processTribeOutboxBatch({ consumer, async persistEvent() { persisted += 1; } }),
+    /at most one event/
+  );
+  assert.equal(persisted, 0);
+  assert.deepEqual(calls.map((call) => call.type), ["claim"]);
 });
 
 test("validates collaborators and claim response", async () => {
